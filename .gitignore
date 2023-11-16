@@ -1,5 +1,7 @@
 .idea
 
+TOKENS_DIR/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
