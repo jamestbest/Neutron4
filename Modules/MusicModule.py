@@ -4,6 +4,8 @@ import typing
 import discord
 from discord.ext import commands
 
+import SharedFunctions as sf
+
 import yt_dlp
 
 yt_dlp_options = {
@@ -170,6 +172,9 @@ class MusicCog(commands.Cog):
                             description="Play a song. Either by url or a string that Neutron will search youtube with")
     @discord.option(name="input", description="Url or search term", required=True)
     async def play(self, ctx: discord.ApplicationContext, inp: str):
+        if not await sf.verify_command(ctx.guild_id, ctx):
+            return
+
         if not self.is_yt_url(inp):
             url = self.search(inp)
         else:
@@ -201,6 +206,9 @@ class MusicCog(commands.Cog):
     @commands.slash_command(name="join", description="Join a voice channel")
     @discord.option(name="channel", description="# of the channel to join", required=False)
     async def join(self, ctx: discord.ApplicationContext, channel: discord.VoiceChannel):
+        if not await sf.verify_command(ctx.guild_id, ctx):
+            return
+
         if channel is None:
             channel = ctx.user.voice.channel
 
@@ -214,6 +222,9 @@ class MusicCog(commands.Cog):
 
     @commands.slash_command(name="leave", description="Leave the current vc")
     async def leave(self, ctx: discord.ApplicationContext):
+        if not await sf.verify_command(ctx.guild_id, ctx):
+            return
+
         c_channel = self.vc.channel
         u_channel = ctx.user.voice.channel
 
@@ -225,8 +236,4 @@ class MusicCog(commands.Cog):
                 return
 
         await self.vc.disconnect()
-
-        if not is_admin:
-            await ctx.respond(f"Neutron has disconnected upon request from {ctx.user.mention}")
-        else:
-            await ctx.respond("Neutron has disconnected upon request")
+        await ctx.respond("Neutron has disconnected upon request")
