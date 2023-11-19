@@ -196,6 +196,8 @@ class MusicCog(commands.Cog):
 
         await self.add_song(song_to_add)
 
+        await ctx.respond("Successfully started song")
+
     @commands.slash_command(name="join", description="Join a voice channel")
     @discord.option(name="channel", description="# of the channel to join", required=False)
     async def join(self, ctx: discord.ApplicationContext, channel: discord.VoiceChannel):
@@ -209,3 +211,22 @@ class MusicCog(commands.Cog):
 
         await self.goto_channel(channel)
         await ctx.respond(f"Successfully joined {channel.mention}")
+
+    @commands.slash_command(name="leave", description="Leave the current vc")
+    async def leave(self, ctx: discord.ApplicationContext):
+        c_channel = self.vc.channel
+        u_channel = ctx.user.voice.channel
+
+        is_admin = ctx.user.guild_permissions.administrator
+
+        if c_channel.id != u_channel.id:
+            if not is_admin:
+                await ctx.respond("Unable to skip song while you are not a) In the voice channel b) An admin")
+                return
+
+        await self.vc.disconnect()
+
+        if not is_admin:
+            await ctx.respond(f"Neutron has disconnected upon request from {ctx.user.mention}")
+        else:
+            await ctx.respond("Neutron has disconnected upon request")
