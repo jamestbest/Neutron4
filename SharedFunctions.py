@@ -2,13 +2,20 @@ from typing import Optional
 
 import discord
 
-from DataStore import guild_info_set
+from DataStore import guild_info_set, levels_set
 import re
 
-id_at_re = "<@([0-9]*)>"
-id_hash_re = "<#([0-9]*)>"
+int_re = "([0-9]*)"
+
+id_at_re = f"<@{int_re}>"
+id_hash_re = f"<#{int_re}>"
+
+level_store_re = f"{int_re},{int_re},{int_re}"
+ginfo_store_re = f"{int_re},{int_re},{int_re},{int_re}"
 
 ginfo_file = "Info/Guild_info.txt"
+levels_file = "Info/Levels.txt"
+
 
 class GuildInfo:
     def __init__(self, guild_id: int, general_id: int, log_id: int, botspam_id: int):
@@ -27,7 +34,7 @@ class GuildInfo:
         return self.__str__()
 
     def file_str(self):
-        return f"{self.id} {self.general} {self.log} {self.botspam}\n"
+        return f"{self.id},{self.general},{self.log},{self.botspam}\n"
 
     def ginfo_embed(self, guild: discord.Guild) -> discord.Embed:
         assert guild.id == self.id
@@ -73,12 +80,14 @@ def load_guild_info():
             # expect format as:
             ##          <guild_id> <general_id> <log_id> <bot_spam_id>
 
-            line_s: list[str] = line.split(" ")
+            groups = re.search(ginfo_store_re, line)
 
-            assert len(line_s) == 4 or len(line_s) == 1
+            if groups is None or len(groups.groups()) != 4:
+                print(f"Found invalid line: {line}")
+                continue
 
-            guild_id = int(line_s[0])
-            ginfo: GuildInfo = GuildInfo(guild_id, int(line_s[1]), int(line_s[2]), int(line_s[3]))
+            guild_id = int(groups.group(0))
+            ginfo: GuildInfo = GuildInfo(guild_id, int(groups.group(1)), int(groups.group(2)), int(groups.group(3)))
 
             if guild_info_set.get(guild_id) is not None:
                 print(
@@ -198,3 +207,54 @@ async def verify_command(guild_id: int, ctx: discord.ApplicationContext,
         return True
 
     await ctx.respond(get_allowed_str(ctx.guild, ginfo, allow_spam, allow_general, allow_log), ephemeral=True)
+
+
+class Level:
+    TIMEOUT_CAP: int = 30
+
+    def __init__(self, user_id: int, level: int, exp: int):
+        self.user_id: int = user_id
+
+        self.level: int = level
+        self.exp: int = exp
+
+        self.timeout_text: int = Level.TIMEOUT_CAP
+        self.timeout_voice: int = Level.TIMEOUT_CAP
+
+    def __str__(self):
+        return f"user: {self.user_id} level: {self.level} exp: {self.exp}"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def str_formatted(self, bot: discord.Bot):
+        user_m = bot.get_user(self.user_id).mention
+
+        return f"user: {user_m} level: {self.level} exp: {self.exp}"
+
+
+def load_levels(bot: discord.Bot):
+    with open(levels_file, "r") as f:
+        line = f.readline()
+
+        while line is not None and line != '':
+            groups = re.search(ginfo_store_re, line)
+
+            uid = int(groups.group(1))
+            level = int(groups.group(2))
+            exp = int(groups.group(3))
+
+            if uid is None or level is None or exp is None:
+                continue
+
+            new_level = Level(uid, level, exp)
+
+            existing_level: Level = levels_set.get(uid)
+
+            if existing_level is not None:
+                print(
+                    f"Error: overwriting level value {existing_level.str_formatted(bot)} with new values {new_level.str_formatted(bot)}")
+
+            levels_set[uid] = new_level
+
+            line = f.readline()
