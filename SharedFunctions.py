@@ -1,0 +1,200 @@
+from typing import Optional
+
+import discord
+
+from DataStore import guild_info_set
+import re
+
+id_at_re = "<@([0-9]*)>"
+id_hash_re = "<#([0-9]*)>"
+
+ginfo_file = "Info/Guild_info.txt"
+
+class GuildInfo:
+    def __init__(self, guild_id: int, general_id: int, log_id: int, botspam_id: int):
+        self.id = guild_id
+        self.general = general_id
+        self.log = log_id
+        self.botspam = botspam_id
+
+    def __str__(self):
+        return (f"Guild info for guild: {self.id}\n"
+                f"|-General: {self.general}\n"
+                f"|-Log: {self.log}\n"
+                f"`-BotSpam: {self.botspam}\n")
+
+    def __repr__(self):
+        return self.__str__()
+
+    def file_str(self):
+        return f"{self.id} {self.general} {self.log} {self.botspam}\n"
+
+    def ginfo_embed(self, guild: discord.Guild) -> discord.Embed:
+        assert guild.id == self.id
+
+        if not verify_g_info(self):
+            return discord.Embed(title="Guild information not setup",
+                                 description="Please have an admin setup guild info with /setup")
+
+        embed = discord.Embed(
+            title=f"Guild Information",
+            description=f"Information held on {guild.name} by Neutron",
+            color=discord.Color.blurple()
+        )
+
+        embed.add_field(name="General", value=guild.get_channel(self.general).mention, inline=True)
+        embed.add_field(name="Log    ", value=guild.get_channel(self.log).mention, inline=True)
+        embed.add_field(name="BotSpam", value=guild.get_channel(self.botspam).mention, inline=True)
+
+        return embed
+
+
+def verify_at_re(string: str) -> int | None:
+    return verify_re(string, id_at_re)
+
+
+def verify_hash_re(string: str) -> int | None:
+    return verify_re(string, id_hash_re)
+
+
+def verify_re(string: str, regex: str) -> int | None:
+    groups = re.search(regex, string)
+
+    if groups is None:
+        return None
+
+    return int(groups.group(1))
+
+
+def load_guild_info():
+    with open(ginfo_file, "r") as info:
+        line = info.readline()
+        while line is not None and line != "":
+            # expect format as:
+            ##          <guild_id> <general_id> <log_id> <bot_spam_id>
+
+            line_s: list[str] = line.split(" ")
+
+            assert len(line_s) == 4 or len(line_s) == 1
+
+            guild_id = int(line_s[0])
+            ginfo: GuildInfo = GuildInfo(guild_id, int(line_s[1]), int(line_s[2]), int(line_s[3]))
+
+            if guild_info_set.get(guild_id) is not None:
+                print(
+                    f"Warning found multiple entries for guild with id: {guild_id}. Overwriting current info: {guild_info_set.get(guild_id)}")
+
+            guild_info_set[guild_id] = ginfo
+
+            line = info.readline()
+
+
+async def log_error(ctx: discord.ApplicationContext, error: str):
+    ginfo = get_guild_info(ctx.guild_id)
+
+    if not verify_g_info(ginfo):
+        return
+
+    log_channel = ctx.guild.get_channel(ginfo.log)
+
+    if log_channel is None:
+        return
+
+    await log_channel.send(f"error: {error}")  # todo change to embed
+
+
+def get_guild_info(guild_id: int) -> GuildInfo | None:
+    info = guild_info_set.get(guild_id)
+    if info is not None:
+        return info
+    return None
+
+
+def set_guild_info(guild_id: int, ginfo: GuildInfo) -> None:
+    oldinfo = guild_info_set.get(guild_id)
+
+    guild_info_set[guild_id] = ginfo
+
+    update_g_info_file(ginfo=ginfo, is_new=oldinfo is None)
+
+
+def update_g_info_file(ginfo: GuildInfo, is_new: bool) -> None:
+    if is_new:
+        with open(file=ginfo_file, mode="a") as f:
+            f.write(ginfo.file_str())
+        return
+    else:
+        buff = ""
+        with open(file=ginfo_file, mode="r") as f:
+            line = f.readline()
+            while not line.startswith(str(ginfo.id)):
+                buff += line
+
+                line = f.readline()
+
+            buff += ginfo.file_str()
+
+            for line in f.readlines():
+                buff += line
+
+        with open(file=ginfo_file, mode="w") as f:
+            f.write(buff)
+
+
+def verify_g_info(ginfo: GuildInfo) -> bool:
+    if ginfo is None:
+        return False
+
+    if ginfo.botspam is None: return False
+    if ginfo.general is None: return False
+    if ginfo.log is None: return False
+
+    return True
+
+
+def get_allowed_str(guild: discord.Guild,
+                    ginfo: GuildInfo,
+                    allow_spam: bool = True,
+                    allow_general: bool = False,
+                    allow_log: bool = False) -> str:
+    output = "This command can be used in:\n"
+
+    if allow_spam:
+        output += f"{guild.get_channel(ginfo.botspam).mention}"
+
+    if allow_general:
+        output += f"{guild.get_channel(ginfo.general).mention}"
+
+    if allow_log:
+        output += f"{guild.get_channel(ginfo.log).mention}"
+
+    return output
+
+
+async def verify_command(guild_id: int, ctx: discord.ApplicationContext,
+                         allow_spam: bool = True,
+                         allow_general: bool = False,
+                         allow_log: bool = False) -> bool:
+    ginfo: GuildInfo | None = get_guild_info(guild_id)
+
+    if not verify_g_info(ginfo):
+        await ctx.respond(
+            f"Error: Guild info not setup for guild ({guild_id}). Please have an admin setup guild info with `/setup`",
+            ephemeral=True)
+        return False
+
+    is_admin = ctx.user.guild_permissions.administrator
+
+    if is_admin:
+        return True
+
+    if allow_spam and ginfo.botspam == ctx.channel_id:
+        return True
+
+    if allow_log and ginfo.log == ctx.channel_id:
+        return True
+
+    if allow_general and ginfo.general == ctx.channel_id:
+        return True
+
+    await ctx.respond(get_allowed_str(ctx.guild, ginfo, allow_spam, allow_general, allow_log), ephemeral=True)
