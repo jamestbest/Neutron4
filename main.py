@@ -93,7 +93,7 @@ async def getinfo(ctx: discord.ApplicationContext):
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
-    print("-------------------------------------------------")
+    print("------------------------------------------------")
 
     results = await bot.sync_commands(guild_ids=DBG_GUILD_IDS)
 
