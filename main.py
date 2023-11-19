@@ -35,9 +35,9 @@ bot = Neutron(
 
 
 @bot.slash_command(name="setup", description="Initial setup for Neutron.")
-@option(name="GeneralChannel", type=discord.TextChannel, optional=False)
-@option(name="LogChannel", type=discord.TextChannel, optional=False)
-@option(name="BotSpamChannel", type=discord.TextChannel, optional=False)
+@option(name="GeneralChannel", type=discord.TextChannel, required=True)
+@option(name="LogChannel", type=discord.TextChannel, required=True)
+@option(name="BotSpamChannel", type=discord.TextChannel, required=True)
 @commands.has_guild_permissions(administrator=True)
 async def setup(ctx: discord.ApplicationContext, gc: discord.TextChannel, lc: discord.TextChannel, bsc: discord.TextChannel):
     ginfo = sf.GuildInfo(guild_id=ctx.guild_id, general_id=gc.id, log_id=lc.id, botspam_id=bsc.id)

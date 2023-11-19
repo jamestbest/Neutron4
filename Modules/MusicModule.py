@@ -168,7 +168,7 @@ class MusicCog(commands.Cog):
 
     @commands.slash_command(name="play",
                             description="Play a song. Either by url or a string that Neutron will search youtube with")
-    @discord.option(name="input", description="Url or search term", optional=False)
+    @discord.option(name="input", description="Url or search term", required=True)
     async def play(self, ctx: discord.ApplicationContext, inp: str):
         if not self.is_yt_url(inp):
             url = self.search(inp)
@@ -197,12 +197,12 @@ class MusicCog(commands.Cog):
         await self.add_song(song_to_add)
 
     @commands.slash_command(name="join", description="Join a voice channel")
-    @discord.option(name="channel", description="# of the channel to join", optional=True)
+    @discord.option(name="channel", description="# of the channel to join", required=False)
     async def join(self, ctx: discord.ApplicationContext, channel: discord.VoiceChannel):
         if channel is None:
-            channel = ctx.channel
+            channel = ctx.user.voice.channel
 
-            if not isinstance(channel, discord.VoiceChannel):
+            if channel is None or not isinstance(channel, discord.VoiceChannel):
                 await ctx.respond(
                     "Can only join users in a voice channel. Alternatively enter the voice channel to join in the options")
                 return
