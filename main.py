@@ -35,23 +35,12 @@ bot = Neutron(
 
 
 @bot.slash_command(name="setup", description="Initial setup for Neutron.")
-@option(name="GeneralChannel", type=str, optional=False)
-@option(name="LogChannel", type=str, optional=False)
-@option(name="BotSpamChannel", type=str, optional=False)
+@option(name="GeneralChannel", type=discord.TextChannel, optional=False)
+@option(name="LogChannel", type=discord.TextChannel, optional=False)
+@option(name="BotSpamChannel", type=discord.TextChannel, optional=False)
 @commands.has_guild_permissions(administrator=True)
-async def setup(ctx: discord.ApplicationContext, gc: str, lc: str, bsc: str):
-    gc_id = sf.verify_hash_re(gc)
-    lc_id = sf.verify_hash_re(lc)
-    bsc_id = sf.verify_hash_re(bsc)
-
-    if gc_id is None or lc_id is None or bsc_id is None:
-        await ctx.respond("Invalid channel given to setup:"
-                          f' gc: {"not" if gc_id is None else "is"} " Valid"'
-                          f' lc: {"not" if lc_id is None else "is"} " Valid"'
-                          f' bsc: {"not" if bsc_id is None else "is"} " Valid"')
-        return
-
-    ginfo = sf.GuildInfo(guild_id=ctx.guild_id, general_id=gc_id, log_id=lc_id, botspam_id=bsc_id)
+async def setup(ctx: discord.ApplicationContext, gc: discord.TextChannel, lc: discord.TextChannel, bsc: discord.TextChannel):
+    ginfo = sf.GuildInfo(guild_id=ctx.guild_id, general_id=gc.id, log_id=lc.id, botspam_id=bsc.id)
 
     sf.set_guild_info(ctx.guild_id, ginfo)
 
@@ -114,9 +103,10 @@ async def on_ready():
     print("Setup complete. All commands synced")
 
 
-from Modules import BasicCog
+from Modules import BasicModule, MusicModule
 
-bot.add_cog(BasicCog.BasicCog(bot))
+bot.add_cog(BasicModule.BasicCog(bot))
+bot.add_cog(MusicModule.MusicCog(bot))
 
 bot.run(DISCORD_API_KEY)
 print("DONE")
