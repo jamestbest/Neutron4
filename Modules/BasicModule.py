@@ -3,7 +3,6 @@ from discord.ext import commands
 
 import SharedFunctions as sf
 
-import re
 
 class BasicCog(commands.Cog):
     def __init__(self, bot):
@@ -46,13 +45,13 @@ class BasicCog(commands.Cog):
 
         ginfo = sf.get_guild_info(ctx.guild_id)
 
-        await ctx.respond(f"Command complete! Join message should be found in General: {ctx.guild.get_channel(ginfo.general).mention}")
+        await ctx.respond(
+            f"Command complete! Join message should be found in General: {ctx.guild.get_channel(ginfo.general).mention}")
 
     @memberjoined.error
     async def member_joined_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
         if isinstance(error, commands.MissingPermissions):
             await ctx.respond("memberjoined command requires administrator privilege", ephemeral=True)
             await sf.log_error(ctx, f"{ctx.user.mention} tried to run `/memberjoin` with insufficient permissions")
-
         else:
             raise error

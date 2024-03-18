@@ -10,31 +10,34 @@ int_re = "([0-9]*)"
 id_at_re = f"<@{int_re}>"
 id_hash_re = f"<#{int_re}>"
 
-level_store_re = f"{int_re},{int_re},{int_re}"
-ginfo_store_re = f"{int_re},{int_re},{int_re},{int_re}"
+level_store_re = f"{int_re}, {int_re}, {int_re}"
+ginfo_store_re = f"{int_re}, {int_re}, {int_re}, {int_re}, {int_re}"
 
 ginfo_file = "Info/Guild_info.txt"
 levels_file = "Info/Levels.txt"
 
 
 class GuildInfo:
-    def __init__(self, guild_id: int, general_id: int, log_id: int, botspam_id: int):
+    def __init__(self, guild_id: int, general_id: int, log_id: int, botspam_id: int, courtroom: int):
         self.id = guild_id
+
         self.general = general_id
         self.log = log_id
         self.botspam = botspam_id
+        self.courtroom = courtroom
 
     def __str__(self):
         return (f"Guild info for guild: {self.id}\n"
                 f"|-General: {self.general}\n"
                 f"|-Log: {self.log}\n"
-                f"`-BotSpam: {self.botspam}\n")
+                f"|-BotSpam: {self.botspam}\n"
+                f"`-Courtroom: {self.courtroom}\n")
 
     def __repr__(self):
         return self.__str__()
 
     def file_str(self):
-        return f"{self.id},{self.general},{self.log},{self.botspam}\n"
+        return f"{self.id}, {self.general}, {self.log}, {self.botspam}, {self.courtroom}\n"
 
     def ginfo_embed(self, guild: discord.Guild) -> discord.Embed:
         assert guild.id == self.id
@@ -49,9 +52,10 @@ class GuildInfo:
             color=discord.Color.blurple()
         )
 
-        embed.add_field(name="General", value=guild.get_channel(self.general).mention, inline=True)
-        embed.add_field(name="Log    ", value=guild.get_channel(self.log).mention, inline=True)
-        embed.add_field(name="BotSpam", value=guild.get_channel(self.botspam).mention, inline=True)
+        embed.add_field(name="General  ", value=guild.get_channel(self.general).mention, inline=True)
+        embed.add_field(name="Log      ", value=guild.get_channel(self.log).mention, inline=True)
+        embed.add_field(name="BotSpam  ", value=guild.get_channel(self.botspam).mention, inline=True)
+        embed.add_field(name="Courtroom", value=guild.get_channel(self.courtroom).mention, inline=True)
 
         return embed
 
@@ -80,14 +84,20 @@ def load_guild_info():
             # expect format as:
             ##          <guild_id> <general_id> <log_id> <bot_spam_id>
 
-            groups = re.search(ginfo_store_re, line)
-
-            if groups is None or len(groups.groups()) != 4:
-                print(f"Found invalid line: {line}")
+            if line.startswith("¬"):
+                line = info.readline()
                 continue
 
-            guild_id = int(groups.group(0))
-            ginfo: GuildInfo = GuildInfo(guild_id, int(groups.group(1)), int(groups.group(2)), int(groups.group(3)))
+            groups = re.search(ginfo_store_re, line)
+
+            if groups is None or len(groups.groups()) != 5:
+                print(f"Found invalid line: {line}")
+                line = info.readline()
+                continue
+
+            guild_id = int(groups.group(1))
+            ginfo: GuildInfo = GuildInfo(guild_id, int(groups.group(2)), int(groups.group(3)), int(groups.group(4)),
+                                         int(groups.group(5)))
 
             if guild_info_set.get(guild_id) is not None:
                 print(
@@ -127,6 +137,17 @@ def set_guild_info(guild_id: int, ginfo: GuildInfo) -> None:
     update_g_info_file(ginfo=ginfo, is_new=oldinfo is None)
 
 
+def remove_guild_info(guild_id: discord.Guild.id) -> bool:
+    gi = get_guild_info(guild_id)
+
+    if not gi:
+        return False
+
+    guild_info_set.pop(guild_id)
+
+    return True
+
+
 def update_g_info_file(ginfo: GuildInfo, is_new: bool) -> None:
     if is_new:
         with open(file=ginfo_file, mode="a") as f:
@@ -157,6 +178,7 @@ def verify_g_info(ginfo: GuildInfo) -> bool:
     if ginfo.botspam is None: return False
     if ginfo.general is None: return False
     if ginfo.log is None: return False
+    if ginfo.courtroom is None: return False
 
     return True
 
@@ -165,17 +187,21 @@ def get_allowed_str(guild: discord.Guild,
                     ginfo: GuildInfo,
                     allow_spam: bool = True,
                     allow_general: bool = False,
-                    allow_log: bool = False) -> str:
+                    allow_log: bool = False,
+                    allow_court: bool = False) -> str:
     output = "This command can be used in:\n"
 
     if allow_spam:
-        output += f"{guild.get_channel(ginfo.botspam).mention}"
+        output += f"{guild.get_channel(ginfo.botspam).mention}\n"
 
     if allow_general:
-        output += f"{guild.get_channel(ginfo.general).mention}"
+        output += f"{guild.get_channel(ginfo.general).mention}\n"
 
     if allow_log:
-        output += f"{guild.get_channel(ginfo.log).mention}"
+        output += f"{guild.get_channel(ginfo.log).mention}\n"
+
+    if allow_court:
+        output += f"{guild.get_channel(ginfo.courtroom).mention}\n"
 
     return output
 
@@ -183,7 +209,8 @@ def get_allowed_str(guild: discord.Guild,
 async def verify_command(guild_id: int, ctx: discord.ApplicationContext,
                          allow_spam: bool = True,
                          allow_general: bool = False,
-                         allow_log: bool = False) -> bool:
+                         allow_log: bool = False,
+                         allow_court: bool = False) -> bool:
     ginfo: GuildInfo | None = get_guild_info(guild_id)
 
     if not verify_g_info(ginfo):
@@ -206,7 +233,11 @@ async def verify_command(guild_id: int, ctx: discord.ApplicationContext,
     if allow_general and ginfo.general == ctx.channel_id:
         return True
 
-    await ctx.respond(get_allowed_str(ctx.guild, ginfo, allow_spam, allow_general, allow_log), ephemeral=True)
+    if allow_court and ginfo.courtroom == ctx.channel_id:
+        return True
+
+    await ctx.respond(get_allowed_str(ctx.guild, ginfo, allow_spam, allow_general, allow_log, allow_court),
+                      ephemeral=True)
 
 
 class Level:
@@ -238,7 +269,7 @@ def load_levels(bot: discord.Bot):
         line = f.readline()
 
         while line is not None and line != '':
-            groups = re.search(ginfo_store_re, line)
+            groups = re.search(level_store_re, line)
 
             uid = int(groups.group(1))
             level = int(groups.group(2))
@@ -258,3 +289,16 @@ def load_levels(bot: discord.Bot):
             levels_set[uid] = new_level
 
             line = f.readline()
+
+
+async def find_user(user_id: discord.User.id, bot: discord.Bot) -> discord.User | None:
+    if (user := bot.get_user(user_id)) is not None:
+        return user
+
+    try:
+        user = await bot.fetch_user(user_id)
+        return user
+    except discord.NotFound:
+        return None
+    except discord.HTTPException:
+        return None
