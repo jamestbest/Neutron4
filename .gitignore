@@ -1,6 +1,7 @@
 .idea
 
 TOKENS_DIR/
+Ass_public_keys/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
