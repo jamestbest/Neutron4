@@ -3,11 +3,12 @@ import re
 import discord
 import datetime
 
-from discord.ext import commands, pages as Pages
+from discord.ext import commands, pages as Pages, tasks
 
-from DataStore import birthday_set
+from DataStore import birthday_set, guild_info_set
 
 import SharedFunctions as sf
+from TOKENS_DIR import TOKENS
 
 bi_f_path = "Info/Birthday_info.txt"
 bi_f_preamble = "¬ <UserId:int>          <birthday:data>          <shouldName:bool>        <silent:bool>\n"
@@ -457,3 +458,43 @@ class BirthdayCog(commands.Cog):
             output += f"{user.mention if user is not None else f'{bi.id} (User NF)'} ({age})\n"
 
         await ctx.respond(output, allowed_mentions=discord.AllowedMentions.none())
+
+    @birthday_group.command(name="check")
+    async def birthday_check(self, ctx: discord.ApplicationContext):
+        await self.check_all_birthdays()
+        await ctx.respond("Sent request")
+
+    @tasks.loop(time=datetime.time(hour=8))
+    async def check_all_birthdays(self):
+        for gi in guild_info_set:
+            await self.check_birthdays(gi)
+
+    async def reveal_birthday(self, gi: sf.GuildInfo, bi: Birthday_Info):
+        channel = self.bot.get_channel(gi.general)
+
+        await channel.send("🎂")
+
+        user = channel.guild.get_member(bi.id)
+        await user.add_roles(TOKENS.ATOM_BIRTHDAY_ROLE_ID)
+
+    async def assure_no_birthday(self, gi: sf.GuildInfo, user: discord.Member | discord.User):
+        guild = self.bot.get_guild(gi.id)
+
+        u = guild.get_member(user.id)
+        await u.remove_roles(TOKENS.ATOM_BIRTHDAY_ROLE_ID)
+
+
+    async def check_birthdays(self, gi: sf.GuildInfo):
+        guild = self.bot.get_guild(gi.id)
+
+        for user in guild.members:
+            if birthday_set.get(user.id) is None:
+                continue
+
+            bi: Birthday_Info = birthday_set.get(user.id)
+
+            if bi.date.year == datetime.datetime.now().year and bi.date.month == datetime.datetime.now().month and bi.date.day == datetime.datetime.now().day:
+                await self.reveal_birthday(gi, bi)
+            else:
+                await self.assure_no_birthday(gi, user)
+
