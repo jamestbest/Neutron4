@@ -466,7 +466,7 @@ class BirthdayCog(commands.Cog):
 
     @tasks.loop(time=datetime.time(hour=8))
     async def check_all_birthdays(self):
-        for gi in guild_info_set:
+        for gi in guild_info_set.values():
             await self.check_birthdays(gi)
 
     async def reveal_birthday(self, gi: sf.GuildInfo, bi: Birthday_Info):
@@ -475,13 +475,16 @@ class BirthdayCog(commands.Cog):
         await channel.send("🎂")
 
         user = channel.guild.get_member(bi.id)
-        await user.add_roles(TOKENS.ATOM_BIRTHDAY_ROLE_ID)
+        role = channel.guild.get_role(TOKENS.ATOM_BIRTHDAY_ROLE_ID)
+        await user.add_roles(role)
 
     async def assure_no_birthday(self, gi: sf.GuildInfo, user: discord.Member | discord.User):
         guild = self.bot.get_guild(gi.id)
 
         u = guild.get_member(user.id)
-        await u.remove_roles(TOKENS.ATOM_BIRTHDAY_ROLE_ID)
+        role = u.get_role(TOKENS.ATOM_BIRTHDAY_ROLE_ID)
+        if role is not None:
+            await u.remove_roles(role)
 
 
     async def check_birthdays(self, gi: sf.GuildInfo):
@@ -493,7 +496,7 @@ class BirthdayCog(commands.Cog):
 
             bi: Birthday_Info = birthday_set.get(user.id)
 
-            if bi.date.year == datetime.datetime.now().year and bi.date.month == datetime.datetime.now().month and bi.date.day == datetime.datetime.now().day:
+            if bi.date.month == datetime.datetime.now().month and bi.date.day == datetime.datetime.now().day:
                 await self.reveal_birthday(gi, bi)
             else:
                 await self.assure_no_birthday(gi, user)
