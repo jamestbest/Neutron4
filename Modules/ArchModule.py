@@ -390,7 +390,7 @@ class ArchCog(commands.Cog):
         self.get_current_arch_status()
 
     def get_current_arch_status(self):
-        channel = self.bot.get_channel(1219363254208561285)
+        channel = self.bot.get_channel(1219375427626340523)
         perms = channel.permissions_for(channel.guild.default_role)
 
         status = perms.view_channel

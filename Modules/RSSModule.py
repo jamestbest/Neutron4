@@ -25,7 +25,7 @@ class RSSCog(commands.Cog):
 
         self.url = "https://projects.cs.nott.ac.uk/comp1003-2324-teams/team_55/coursework.atom?feed_token=" + GITLAB_FEED_TOKEN
 
-        self.last_update: datetime = datetime.datetime.now()
+        self.last_update: datetime = datetime.datetime.now(datetime.timezone.utc)
 
         self.check_rss.start()
 
@@ -40,7 +40,7 @@ class RSSCog(commands.Cog):
 
         for i in range(len(feed.entries) - 1, -1, -1):
             cmp_date = datetime.datetime.fromisoformat(feed.entries[i].updated)
-            if cmp_date <= self.last_update.replace(tzinfo=cmp_date.tzinfo):
+            if cmp_date <= self.last_update:
                 continue
 
             count += 1
@@ -55,4 +55,4 @@ class RSSCog(commands.Cog):
             await channel.send(content=f"<@416977433754075146> Updated! {count} new entries")
 
         print(f"UPDATED {count} entries")
-        self.last_update = datetime.datetime.now()
+        self.last_update = datetime.datetime.now(datetime.timezone.utc)
