@@ -1,20 +1,9 @@
-import re
-
-import discord
 import datetime
 
-from discord.ext import commands, pages as Pages
-from discord.ext.tasks import loop
-
-from DataStore import birthday_set
-
-import SharedFunctions as sf
-
-import json
-
-import dateutil
-
+import discord
 import feedparser as fp
+from discord.ext import commands
+from discord.ext.tasks import loop
 
 from TOKENS_DIR.TOKENS import GITLAB_FEED_TOKEN
 
