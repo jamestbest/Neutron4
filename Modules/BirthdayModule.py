@@ -324,6 +324,14 @@ class BirthdayCog(commands.Cog):
         output.append(current_day)
         return output
 
+    def compare_dates_for_sorting(self, a: datetime, b: datetime) -> int:
+        l: int = (a.month - b.month) * 30
+        if (l < 0): l += 365
+
+        l += a.day - b.day
+
+        return l
+
     def sort_birthdays(self, ctx: discord.ApplicationContext, descending=False, requireInGuild=True) -> list[
         tuple[discord.User.id, Birthday_Info]]:
         items = birthday_set.items()
@@ -335,9 +343,11 @@ class BirthdayCog(commands.Cog):
                 birthdays.append(item)
 
         now = datetime.datetime.now()
-        bs = sorted(birthdays, key=lambda bs_info: now - datetime.datetime(year=now.year, month=bs_info[1].date.month,
-                                                                           day=bs_info[1].date.day), reverse=descending)
+        bs = sorted(birthdays, key=lambda bs_info: self.compare_dates_for_sorting(now, bs_info[1].date), reverse=not descending)
         return bs
+
+    def compare_dates(self, a: datetime, b: datetime) -> bool:
+        return a.month < b.month or (a.month == b.month and a.day < b.day)
 
     @birthday_group.command(name="list", description="View the birthdays stored by the server")
     @discord.option(name="Descending", type=bool, description="View the birthdays in descending order", required=False)
@@ -358,10 +368,11 @@ class BirthdayCog(commands.Cog):
         for i in range(page_count):
             page = discord.Embed(title="Birthdays".center(45, '-'))
 
-            min_date: datetime.datetime = datetime.datetime.max
-            max_date: datetime.datetime = datetime.datetime.min
-
             max_birthdays = min(10, len(bss) - (10 * i))
+
+            min_date: datetime.datetime = bss[birthdays_pos][0][1].date
+            max_date: datetime.datetime = bss[birthdays_pos + max_birthdays - 1][0][1].date
+
             for j in range(max_birthdays):
                 birthdays: list[tuple[discord.User.id, Birthday_Info]] = bss[birthdays_pos]
 
@@ -370,11 +381,6 @@ class BirthdayCog(commands.Cog):
                     continue
 
                 init_birthday = birthdays[0][1].date
-
-                if init_birthday < min_date:
-                    min_date = init_birthday
-                if init_birthday > max_date:
-                    max_date = init_birthday
 
                 should_use_same_year = True
 
