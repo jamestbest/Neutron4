@@ -9,6 +9,20 @@ class BasicCog(commands.Cog):
         self.bot = bot
 
     @commands.Cog.listener()
+    async def on_member_remove(self, member: discord.Member):
+        guild = member.guild
+        ginfo: sf.GuildInfo | None = sf.get_guild_info(guild.id)
+
+        verified = sf.verify_g_info(ginfo)
+
+        if not verified:
+            return
+
+        channel = guild.get_channel(ginfo.general)
+
+        await channel.send(f"{member.display_name} was sus")
+
+    @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         guild = member.guild
         ginfo: sf.GuildInfo | None = sf.get_guild_info(guild.id)

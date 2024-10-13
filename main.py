@@ -129,7 +129,8 @@ async def getinfo(ctx: discord.ApplicationContext):
     await ctx.respond(embed=ginfo.ginfo_embed(ctx.guild))
 
 
-from Modules import BasicModule, MusicModule, BirthdayModule, VoteModule, RedDayModule, StringModule, ArchModule, RSSModule
+from Modules import BasicModule, MusicModule, BirthdayModule, VoteModule, RedDayModule, StringModule, ArchModule, \
+    RSSModule, PurgeModule
 
 
 @bot.event
@@ -155,6 +156,7 @@ bot.add_cog(VoteModule.VoteCog(bot))
 # bot.add_cog(StringModule.StringCog(bot))
 bot.add_cog(ArchModule.ArchCog(bot))
 bot.add_cog(RSSModule.RSSCog(bot))
+bot.add_cog(PurgeModule.PurgeCog(bot))
 
 bot.run(DISCORD_API_KEY)
 print("DONE")
