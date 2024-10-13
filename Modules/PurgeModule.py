@@ -25,7 +25,7 @@ class PurgeCog(commands.Cog):
     async def purgeremind(self, ctx: discord.ApplicationContext):
         general = self.bot.get_channel(self.chat_to_use)
 
-        await general.send("@everyone The purge begins soon, take this time to make peace with Gorp, for he will judge us all")
+        await general.send("@everyone The second ATOM Annual purge begins soon, take this time to make peace with Gorp, for he will judge us all")
 
     @commands.slash_command(name="forgive")
     @option("user", type=discord.SlashCommandOptionType.user, required=True)
