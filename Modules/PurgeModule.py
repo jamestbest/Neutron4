@@ -78,7 +78,10 @@ class PurgeCog(commands.Cog):
                     await general.send(
                         content=f"```ansi\n[2;31m[0m[2;31m{user.name}[0m[2;31m[0m has been selected```")
             else:
-                await general.send(content=f"```ansi\nGorpius smiles gracefully upon {user.name}```")
+                if user.id == 275343721606676481:
+                    await general.send(f"{user.display_name} tread lightly, Gorpius does not look kindly on heresy")
+                else:
+                    await general.send(content=f"```ansi\nGorpius smiles gracefully upon {user.name}```")
 
             if user.id == 339926969548275722:
                 await general.send(
