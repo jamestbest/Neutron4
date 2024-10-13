@@ -41,7 +41,7 @@ class PurgeCog(commands.Cog):
         atom = self.bot.get_guild(TOKENS.ATOM_GUILD_ID)
         general = atom.get_channel(self.chat_to_use)
 
-        takelonger = [416976228809965568, 755412315632828516, 316273709239500801]
+        takelonger = [416976228809965568, 755412315632828516, 316273709239500801, 275343721606676481]
 
         await general.send(
             "Welcome all, Sludgies and Sludgettes.\nToday we arrive at the forefront of history, today we bare witness to an act that could only be from Gorp himself. \n\nI stand "
