@@ -155,7 +155,7 @@ bot.add_cog(VoteModule.VoteCog(bot))
 # bot.add_cog(RedDayModule.RedDayCog(bot))
 # bot.add_cog(StringModule.StringCog(bot))
 bot.add_cog(ArchModule.ArchCog(bot))
-bot.add_cog(RSSModule.RSSCog(bot))
+#bot.add_cog(RSSModule.RSSCog(bot))
 bot.add_cog(PurgeModule.PurgeCog(bot))
 
 bot.run(DISCORD_API_KEY)

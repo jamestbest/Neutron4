@@ -7,7 +7,6 @@ import SharedFunctions as sf
 
 import rsa
 
-
 class Status:
     def __init__(self, public_key_data, name, status=False):
         self.public_key = public_key_data

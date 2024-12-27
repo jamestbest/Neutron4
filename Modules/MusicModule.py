@@ -26,6 +26,7 @@ yt_dlp_options = {
         "0.0.0.0"
     ),
     "verbose": True,
+    "username": "ATOM.Neutronbot@gmail.com",
 }
 
 ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
